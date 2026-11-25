@@ -1,0 +1,129 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 36 },
+              { "color": "red", "value": 40 }
+            ]
+          }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\" and r[\"_field\"] == \"tcs_supply_temp_c\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "TCS Supply Temp",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": { "defaults": { "unit": "L/m", "decimals": 1 } },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\" and r[\"_field\"] == \"tcs_flow_lpm\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Coolant Flow",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": { "defaults": { "unit": "kwatt", "decimals": 0 } },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\" and r[\"_field\"] == \"it_load_kw\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "IT Heat Load",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "options": {
+                "0": { "color": "green", "index": 0, "text": "OK (Normal)" },
+                "1": { "color": "orange", "index": 1, "text": "PUMP1 FAILOVER (N+1)" },
+                "2": { "color": "red", "index": 2, "text": "HIGH TEMP WARN" },
+				"3": { "color": "orange", "index": 3, "text": "PUMP2 FAULT (NO N+1)" },
+                "4": { "color": "red", "index": 4, "text": "CRITICAL: ALL PUMPS FAULT" }
+              },
+              "type": "value"
+            }
+          ]
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\" and r[\"_field\"] == \"alarm_code\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "CDU Alarm Status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": { "defaults": { "unit": "celsius", "custom": { "lineWidth": 2 } } },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\")\n  |> filter(fn: (r) => r[\"_field\"] == \"tcs_supply_temp_c\" or r[\"_field\"] == \"tcs_return_temp_c\" or r[\"_field\"] == \"fws_supply_temp_c\" or r[\"_field\"] == \"setpoint_temp_c\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Coolant Loop Temperatures & Setpoint",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "influxdb-cdu" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "lineWidth": 2 } } },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "targets": [
+        {
+          "query": "from(bucket: \"cdu_telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cdu_metrics\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pump1_speed_pct\" or r[\"_field\"] == \"pump2_speed_pct\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Redundant Pumps (N+1) Speed",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "2s",
+  "schemaVersion": 39,
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "DCX CDU Digital Twin - Live Telemetry",
+  "uid": "dcx-cdu-overview"
+}

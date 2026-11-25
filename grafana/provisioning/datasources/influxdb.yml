@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB_CDU
+    uid: influxdb-cdu
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    isDefault: true
+    jsonData:
+      version: Flux
+      organization: dcx
+      defaultBucket: cdu_telemetry
+      tlsSkipVerify: true
+    secureJsonData:
+      token: dcx-super-secret-token

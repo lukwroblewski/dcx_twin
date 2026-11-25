@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Środowisko i sekrety
+.env
+*.log
+
+# Edytory i OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Ewentualne nagrania robocze (jeśli trzymasz je w folderze)
+*.mkv
