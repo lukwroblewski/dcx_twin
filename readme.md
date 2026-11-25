@@ -6,6 +6,9 @@ Skonteneryzowany prototyp oprogramowania brzegowego (IPC/Edge) dla przemysłowej
 
 Projekt łączy warstwę automatyki OT (**Modbus TCP**), buforowanie i bazę szeregów czasowych (**InfluxDB v2**), wizualizację (**Grafana**) oraz integrację z infrastrukturą Data Center poprzez standard **DMTF Redfish REST API**, z uwzględnieniem izolacji sieci i dobrych praktyk bezpieczeństwa **IEC 62443**.
 
+https://github.com/user-attachments/assets/02351bc9-3a58-4cdf-b99a-fcc91db88341
+
+
 
 
 
