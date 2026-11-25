@@ -24,6 +24,18 @@ jobs:
       - name: Run pytest
         run: PYTHONPATH=. pytest -v
 
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Run Bandit SAST
+        run: |
+          pip install bandit
+          bandit -r edge_gateway/main.py cdu_simulator/simulator.py
+
   docker-build:
     runs-on: ubuntu-latest
     steps:

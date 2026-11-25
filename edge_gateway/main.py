@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import os
+import secrets
 from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from pydantic import BaseModel, Field
@@ -24,6 +26,8 @@ MODBUS_PORT = int(os.getenv("MODBUS_PORT", "5020"))
 POLL_INTERVAL = float(os.getenv("POLL_INTERVAL_SEC", "1.0"))
 DEVICE_ID = 1
 
+REDFISH_API_KEY = os.getenv("REDFISH_API_KEY", "")
+
 INFLUX_URL = os.getenv("INFLUX_URL", "")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "")
 INFLUX_ORG = os.getenv("INFLUX_ORG", "dcx")
@@ -38,6 +42,23 @@ ALARM_MAP = {
     3: "PUMP2_FAULT_NO_REDUNDANCY",
     4: "CRITICAL_BOTH_PUMPS_FAULT",
 }
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def verify_api_key(provided_key: str | None = Security(api_key_header)) -> str:
+    if not REDFISH_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API authentication is not configured",
+        )
+    if not provided_key or not secrets.compare_digest(provided_key, REDFISH_API_KEY):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing X-API-Key",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    return provided_key
 
 
 class GatewayState:
@@ -184,16 +205,20 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="DCX CDU Edge Gateway (DMTF Redfish PoC)",
     description="Bramka brzegowa łącząca sterownik CDU (Modbus TCP) z warstwą DCIM (DMTF Redfish API) oraz InfluxDB.",
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
+
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
     return response
+
 
 class SetpointRequest(BaseModel):
     target_temp_c: float = Field(..., ge=18.0, le=45.0, examples=[28.5])
@@ -226,7 +251,7 @@ def redfish_service_root():
     }
 
 
-@app.get("/redfish/v1/ThermalEquipment")
+@app.get("/redfish/v1/ThermalEquipment", dependencies=[Depends(verify_api_key)])
 def thermal_equipment():
     return {
         "@odata.id": "/redfish/v1/ThermalEquipment",
@@ -236,7 +261,7 @@ def thermal_equipment():
     }
 
 
-@app.get("/redfish/v1/ThermalEquipment/CDUs")
+@app.get("/redfish/v1/ThermalEquipment/CDUs", dependencies=[Depends(verify_api_key)])
 def list_cdus():
     return {
         "@odata.id": "/redfish/v1/ThermalEquipment/CDUs",
@@ -247,7 +272,7 @@ def list_cdus():
     }
 
 
-@app.get("/redfish/v1/ThermalEquipment/CDUs/1")
+@app.get("/redfish/v1/ThermalEquipment/CDUs/1", dependencies=[Depends(verify_api_key)])
 def get_cdu_details():
     if not state.latest:
         raise HTTPException(status_code=503, detail="Brak danych z Modbus TCP")
@@ -304,7 +329,10 @@ def get_cdu_details():
     }
 
 
-@app.post("/redfish/v1/ThermalEquipment/CDUs/1/Actions/SetTargetTemperature")
+@app.post(
+    "/redfish/v1/ThermalEquipment/CDUs/1/Actions/SetTargetTemperature",
+    dependencies=[Depends(verify_api_key)],
+)
 async def set_target_temperature(payload: SetpointRequest):
     reg_val = int(round(payload.target_temp_c * 10))
     client, lock = state.ensure_modbus()
@@ -317,7 +345,10 @@ async def set_target_temperature(payload: SetpointRequest):
     return {"status": "accepted", "new_target_temp_c": payload.target_temp_c}
 
 
-@app.post("/redfish/v1/ThermalEquipment/CDUs/1/Actions/SimulatePumpFault")
+@app.post(
+    "/redfish/v1/ThermalEquipment/CDUs/1/Actions/SimulatePumpFault",
+    dependencies=[Depends(verify_api_key)],
+)
 async def simulate_pump_fault(payload: FaultSimulationRequest):
     client, lock = state.ensure_modbus()
     async with lock:

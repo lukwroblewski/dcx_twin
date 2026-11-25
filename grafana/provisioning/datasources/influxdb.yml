@@ -7,10 +7,11 @@ datasources:
     access: proxy
     url: http://influxdb:8086
     isDefault: true
+    editable: false
     jsonData:
       version: Flux
       organization: dcx
       defaultBucket: cdu_telemetry
       tlsSkipVerify: true
     secureJsonData:
-      token: dcx-super-secret-token
+      token: $INFLUX_TOKEN
