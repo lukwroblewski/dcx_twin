@@ -51,9 +51,9 @@ async def physics_loop(server: ModbusTcpServer) -> None:
         fault_p1 = rw_regs[1] == 1
         fault_p2 = rw_regs[3] == 1
 
-        # Delikatne wahania obciążenia klastra AI/HPC i wody pierwotnej
-        it_load_kw = max(90.0, min(180.0, it_load_kw + random.uniform(-1.5, 1.5)))
-        fws_supply = max(17.5, min(22.0, fws_supply + random.uniform(-0.05, 0.05)))
+        # Delikatne wahania obciążenia klastra AI/HPC i wody pierwotnej (szum symulacji, nie kryptografia)
+        it_load_kw = max(90.0, min(180.0, it_load_kw + random.uniform(-1.5, 1.5)))  # nosec B311
+        fws_supply = max(17.5, min(22.0, fws_supply + random.uniform(-0.05, 0.05)))  # nosec B311
 
         # Dobór obrotów pompy wtórnej pod obciążenie cieplne (utrzymanie dT ~ 10°C)
         desired_pump_speed = int(max(45, min(95, 35 + (it_load_kw / 4.0))))
@@ -86,7 +86,7 @@ async def physics_loop(server: ModbusTcpServer) -> None:
         if flow_lpm < 1.0 and active_speed == 0:
             flow_lpm = 0.0
         elif active_speed > 0:
-            flow_lpm = max(0.0, flow_lpm + random.uniform(-0.8, 0.8))
+            flow_lpm = max(0.0, flow_lpm + random.uniform(-0.8, 0.8))  # nosec B311
 
         # Regulator PI zaworu pierwotnego FWS (chłodzi obieg TCS przez wymiennik)
         temp_error = tcs_supply - setpoint
@@ -103,7 +103,7 @@ async def physics_loop(server: ModbusTcpServer) -> None:
             # Sprawność wymiennika płytowego zależna od otwarcia zaworu FWS (max 87%)
             hx_effectiveness = 0.12 + 0.75 * (fws_valve_pct / 100.0)
             hx_outlet_eq = tcs_return - hx_effectiveness * max(0.0, tcs_return - fws_supply)
-            tcs_supply += (hx_outlet_eq - tcs_supply) * 0.08 + random.uniform(-0.03, 0.03)
+            tcs_supply += (hx_outlet_eq - tcs_supply) * 0.08 + random.uniform(-0.03, 0.03)  # nosec B311
         else:
             # Brak przepływu (awaria obu pomp): woda stoi w blokach serwerów i szybko się nagrzewa
             tcs_return = min(95.0, tcs_return + (it_load_kw / 240.0))
@@ -149,7 +149,8 @@ async def main() -> None:
         id=DEVICE_ID,
         simdata=SimData(address=0, count=16, values=0, datatype=DataType.REGISTERS),
     )
-    server = ModbusTcpServer(context=device, address=("0.0.0.0", 5020))
+    # Nasłuch wewnątrz odizolowanej sieci Docker ot_internal (internal: true)
+    server = ModbusTcpServer(context=device, address=("0.0.0.0", 5020))  # nosec B104
     await server.serve_forever(background=True)
     log.info("CDU Modbus TCP Simulator nasłuchuje na porcie 5020 (device_id=%d)", DEVICE_ID)
 
