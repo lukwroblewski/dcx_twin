@@ -1,10 +1,15 @@
+
+
 # DCX CDU Digital Twin – Edge Gateway & DMTF Redfish PoC
 
 Skonteneryzowany prototyp oprogramowania brzegowego (IPC/Edge) dla przemysłowej jednostki dystrybucji chłodziwa (**CDU** – *Coolant Distribution Unit*) stosowanej w centrach danych AI/HPC.
 
 Projekt łączy warstwę automatyki OT (**Modbus TCP**), buforowanie i bazę szeregów czasowych (**InfluxDB v2**), wizualizację (**Grafana**) oraz integrację z infrastrukturą Data Center poprzez standard **DMTF Redfish REST API**, z uwzględnieniem izolacji sieci i dobrych praktyk bezpieczeństwa **IEC 62443**.
 
-> **Demo wideo:** *(Przeciągnij tutaj swoje nagranie `.mp4` w edytorze GitHuba i usuń tę linijkę)*
+
+
+
+
 
 ---
 
